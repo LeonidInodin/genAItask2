@@ -1,0 +1,1229 @@
+Write sql script (MySQL dialect) to create 3 tables: author (id int auto increment PRIMARY KEY,  name VARCHAR(100)), genre (id int auto increment PRIMARY KEY, title VARCHAR(100)), book (id int AUTO INCREMENT PRIMARY KEY, title (VARCHAR(200)), authorId (int FOREIGN KEY), genreId (int FOREIGN KEY), price (DECIMAL), quantity (int). Relations: genre and book - one to many, author and book - one to many. Fill created table with data: 5 rows in author table, 5 rows in genre table, 10 rows in book table.
+ChatGPT
+Certainly! Below is a SQL script written in MySQL dialect to create the three tables (author, genre, and book) along with the specified relationships. Additionally, the script inserts sample data into each table:
+
+sql
+Copy code
+-- Create author table
+CREATE TABLE author (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100)
+);
+
+-- Create genre table
+CREATE TABLE genre (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100)
+);
+
+-- Create book table with foreign key constraints
+CREATE TABLE book (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200),
+    authorId INT,
+    genreId INT,
+    price DECIMAL,
+    quantity INT,
+    FOREIGN KEY (authorId) REFERENCES author(id),
+    FOREIGN KEY (genreId) REFERENCES genre(id)
+);
+
+-- Insert data into author table
+INSERT INTO author (name) VALUES
+    ('Author 1'),
+    ('Author 2'),
+    ('Author 3'),
+    ('Author 4'),
+    ('Author 5');
+
+-- Insert data into genre table
+INSERT INTO genre (title) VALUES
+    ('Genre 1'),
+    ('Genre 2'),
+    ('Genre 3'),
+    ('Genre 4'),
+    ('Genre 5');
+
+-- Insert data into book table
+INSERT INTO book (title, authorId, genreId, price, quantity) VALUES
+    ('Book 1', 1, 1, 20.99, 100),
+    ('Book 2', 2, 2, 15.50, 75),
+    ('Book 3', 3, 3, 30.75, 50),
+    ('Book 4', 4, 4, 18.25, 120),
+    ('Book 5', 5, 5, 25.00, 80),
+    ('Book 6', 1, 1, 22.50, 90),
+    ('Book 7', 2, 2, 27.99, 110),
+    ('Book 8', 3, 3, 19.75, 60),
+    ('Book 9', 4, 4, 24.50, 70),
+    ('Book 10', 5, 5, 16.80, 85);
+This script creates the three tables (author, genre, and book) with the specified columns and relationships, and then inserts sample data into each table. Adjust the data as needed for your specific use case.
+
+User
+Write entity java classes with Hibernate according last request
+ChatGPT
+Certainly! Below are Java classes representing the entities using Hibernate annotations. These classes correspond to the tables created in the MySQL script:
+
+Author entity:
+java
+Copy code
+import javax.persistence.*;
+
+@Entity
+@Table(name = "author")
+public class Author {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "name", length = 100)
+    private String name;
+
+    // Getters and setters (constructors, etc.) can be added here
+
+}
+Genre entity:
+java
+Copy code
+import javax.persistence.*;
+
+@Entity
+@Table(name = "genre")
+public class Genre {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "title", length = 100)
+    private String title;
+
+    // Getters and setters (constructors, etc.) can be added here
+
+}
+Book entity:
+java
+Copy code
+import javax.persistence.*;
+
+@Entity
+@Table(name = "book")
+public class Book {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "title", length = 200)
+    private String title;
+
+    @ManyToOne
+    @JoinColumn(name = "authorId", nullable = false)
+    private Author author;
+
+    @ManyToOne
+    @JoinColumn(name = "genreId", nullable = false)
+    private Genre genre;
+
+    @Column(name = "price")
+    private double price;
+
+    @Column(name = "quantity")
+    private int quantity;
+
+    // Getters and setters (constructors, etc.) can be added here
+
+}
+Make sure you have the necessary dependencies for Hibernate in your project. Adjust the code as needed for your specific use case, and add any required annotations, methods, or configurations based on your project requirements.
+
+User
+Write unit tests to my Java class '''package com.inodinln.generativeAiTask2.controllers;
+
+import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import com.inodinln.generativeAiTask2.repositories.BookRepository;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/v1/books/")
+@Transactional(readOnly = true)
+public class BookController {
+
+    private final BookRepository bookRepository;
+
+    private final AuthorRepository authorRepository;
+
+    private final GenreRepository genreRepository;
+
+    @GetMapping
+    public ResponseEntity<List<BookEntity>> getAllAvailableBooks() {
+        return new ResponseEntity<>(bookRepository.findAll(), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BookEntity> getBookById(@PathVariable(name = "id") Long id) {
+        return bookRepository.findById(id).map(bookEntity -> new ResponseEntity<>(bookEntity, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @Transactional
+    @PostMapping
+    public ResponseEntity<BookEntity> createNewBook(
+            @RequestParam(name = "title") String title,
+            @RequestParam(name = "authorId") Long authorId,
+            @RequestParam(name = "genreId") Long genreId,
+            @RequestParam(name = "price") BigDecimal price,
+            @RequestParam(name = "quantity") Integer quantity) {
+        Optional<AuthorEntity> author = authorRepository.findById(authorId);
+        Optional<GenreEntity> genre = genreRepository.findById(genreId);
+        if (genre.isEmpty() || author.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(bookRepository.save(new BookEntity(title,author.get(), genre.get(), price, quantity)), HttpStatus.CREATED);
+    }
+
+    @Transactional
+    @PutMapping
+    public ResponseEntity<BookEntity> updateBook(
+            @RequestParam(name = "id") Long id,
+            @RequestParam(name = "newTitle", required = false) String newTitle,
+            @RequestParam(name = "newPrice", required = false) BigDecimal newPrice,
+            @RequestParam(name = "quantity", required = false) Integer newQuantity) {
+        Optional<BookEntity> result = bookRepository.findById(id);
+        if (result.isEmpty()) return new ResponseEntity<>( HttpStatus.NOT_FOUND);
+        BookEntity entityToBeUpdated = result.get();
+        Optional.ofNullable(newTitle).ifPresent(entityToBeUpdated::setTitle);
+        Optional.ofNullable(newPrice).ifPresent(entityToBeUpdated::setPrice);
+        Optional.ofNullable(newQuantity).ifPresent(entityToBeUpdated::setQuantity);
+        bookRepository.save(entityToBeUpdated);
+        return new ResponseEntity<>( HttpStatus.OK);
+    }
+
+    @Transactional
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBookById(@PathVariable(name = "id") Long id) {
+        Optional<BookEntity> result = bookRepository.findById(id);
+        if (result.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        bookRepository.deleteById(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+}'''
+ChatGPT
+To write unit tests for your BookController class, you can use a testing framework like JUnit along with Mockito for mocking dependencies. Below is an example of how you can write unit tests for the BookController class:
+
+java
+Copy code
+package com.inodinln.generativeAiTask2.controllers;
+
+import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import com.inodinln.generativeAiTask2.repositories.BookRepository;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+class BookControllerTest {
+
+    @InjectMocks
+    private BookController bookController;
+
+    @Mock
+    private BookRepository bookRepository;
+
+    @Mock
+    private AuthorRepository authorRepository;
+
+    @Mock
+    private GenreRepository genreRepository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void getAllAvailableBooks() {
+        // Arrange
+        List<BookEntity> books = Arrays.asList(new BookEntity(), new BookEntity());
+        when(bookRepository.findAll()).thenReturn(books);
+
+        // Act
+        ResponseEntity<List<BookEntity>> response = bookController.getAllAvailableBooks();
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(books, response.getBody());
+    }
+
+    @Test
+    void getBookById() {
+        // Arrange
+        Long bookId = 1L;
+        BookEntity bookEntity = new BookEntity();
+        when(bookRepository.findById(bookId)).thenReturn(Optional.of(bookEntity));
+
+        // Act
+        ResponseEntity<BookEntity> response = bookController.getBookById(bookId);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(bookEntity, response.getBody());
+    }
+
+    // Similar tests can be written for other methods in BookController
+
+    @Test
+    void createNewBook() {
+        // Arrange
+        String title = "New Book";
+        Long authorId = 1L;
+        Long genreId = 2L;
+        BigDecimal price = BigDecimal.valueOf(19.99);
+        Integer quantity = 50;
+
+        AuthorEntity authorEntity = new AuthorEntity();
+        GenreEntity genreEntity = new GenreEntity();
+
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(authorEntity));
+        when(genreRepository.findById(genreId)).thenReturn(Optional.of(genreEntity));
+        when(bookRepository.save(any())).thenReturn(new BookEntity());
+
+        // Act
+        ResponseEntity<BookEntity> response = bookController.createNewBook(title, authorId, genreId, price, quantity);
+
+        // Assert
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        verify(bookRepository, times(1)).save(any());
+    }
+
+    // Additional tests for updateBook and deleteBookById can be written similarly
+
+}
+This is a basic example, and you may need to adapt it based on the specific behavior of your application and controllers. Ensure you have the necessary dependencies for testing in your project, such as JUnit and Mockito.
+
+User
+Can you write unit tests to my Java class """import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import com.inodinln.generativeAiTask2.repositories.BookRepository;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/v1/books/")
+@Transactional(readOnly = true)
+public class BookController {
+
+    private final BookRepository bookRepository;
+
+    private final AuthorRepository authorRepository;
+
+    private final GenreRepository genreRepository;
+
+    @GetMapping
+    public ResponseEntity<List<BookEntity>> getAllAvailableBooks() {
+        return new ResponseEntity<>(bookRepository.findAll(), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BookEntity> getBookById(@PathVariable(name = "id") Long id) {
+        return bookRepository.findById(id).map(bookEntity -> new ResponseEntity<>(bookEntity, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+ChatGPT
+Certainly! Here are some JUnit tests for the BookController class. I'll provide tests for the getAllAvailableBooks and getBookById methods as examples:
+
+java
+Copy code
+import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import com.inodinln.generativeAiTask2.repositories.BookRepository;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
+
+class BookControllerTest {
+
+    @InjectMocks
+    private BookController bookController;
+
+    @Mock
+    private BookRepository bookRepository;
+
+    @Mock
+    private AuthorRepository authorRepository;
+
+    @Mock
+    private GenreRepository genreRepository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void getAllAvailableBooks() {
+        // Arrange
+        List<BookEntity> books = Arrays.asList(new BookEntity(), new BookEntity());
+        when(bookRepository.findAll()).thenReturn(books);
+
+        // Act
+        ResponseEntity<List<BookEntity>> response = bookController.getAllAvailableBooks();
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(books, response.getBody());
+    }
+
+    @Test
+    void getAllAvailableBooksEmptyList() {
+        // Arrange
+        when(bookRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // Act
+        ResponseEntity<List<BookEntity>> response = bookController.getAllAvailableBooks();
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().isEmpty());
+    }
+
+    @Test
+    void getBookById() {
+        // Arrange
+        Long bookId = 1L;
+        BookEntity bookEntity = new BookEntity();
+        when(bookRepository.findById(bookId)).thenReturn(Optional.of(bookEntity));
+
+        // Act
+        ResponseEntity<BookEntity> response = bookController.getBookById(bookId);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(bookEntity, response.getBody());
+    }
+
+    @Test
+    void getBookByIdNotFound() {
+        // Arrange
+        Long bookId = 1L;
+        when(bookRepository.findById(bookId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<BookEntity> response = bookController.getBookById(bookId);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+}
+You can add more tests for other methods in a similar manner. Ensure to cover different scenarios such as empty lists, not found cases, and successful cases. Mock dependencies appropriately to isolate the controller logic for unit testing.
+
+User
+Write unit tests to my Java class '''package com.inodinln.generativeAiTask2.controllers;
+
+import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import com.inodinln.generativeAiTask2.repositories.BookRepository;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/v1/books/")
+@Transactional(readOnly = true)
+public class BookController {
+
+    private final BookRepository bookRepository;
+
+    private final AuthorRepository authorRepository;
+
+    private final GenreRepository genreRepository;
+
+     @Transactional
+    @PutMapping
+    public ResponseEntity<BookEntity> updateBook(
+            @RequestParam(name = "id") Long id,
+            @RequestParam(name = "newTitle", required = false) String newTitle,
+            @RequestParam(name = "newPrice", required = false) BigDecimal newPrice,
+            @RequestParam(name = "quantity", required = false) Integer newQuantity) {
+        Optional<BookEntity> result = bookRepository.findById(id);
+        if (result.isEmpty()) return new ResponseEntity<>( HttpStatus.NOT_FOUND);
+        BookEntity entityToBeUpdated = result.get();
+        Optional.ofNullable(newTitle).ifPresent(entityToBeUpdated::setTitle);
+        Optional.ofNullable(newPrice).ifPresent(entityToBeUpdated::setPrice);
+        Optional.ofNullable(newQuantity).ifPresent(entityToBeUpdated::setQuantity);
+        bookRepository.save(entityToBeUpdated);
+        return new ResponseEntity<>( HttpStatus.OK);
+    }
+
+    @Transactional
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBookById(@PathVariable(name = "id") Long id) {
+        Optional<BookEntity> result = bookRepository.findById(id);
+        if (result.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        bookRepository.deleteById(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+}'''
+ChatGPT
+Certainly! Here are some JUnit tests for the updateBook and deleteBookById methods in your BookController class:
+
+java
+Copy code
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.repositories.BookRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
+
+class BookControllerTest {
+
+    @InjectMocks
+    private BookController bookController;
+
+    @Mock
+    private BookRepository bookRepository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void updateBook() {
+        // Arrange
+        Long bookId = 1L;
+        String newTitle = "Updated Title";
+        BigDecimal newPrice = BigDecimal.valueOf(25.99);
+        Integer newQuantity = 50;
+
+        BookEntity existingBookEntity = new BookEntity();
+        when(bookRepository.findById(bookId)).thenReturn(Optional.of(existingBookEntity));
+
+        // Act
+        ResponseEntity<BookEntity> response = bookController.updateBook(bookId, newTitle, newPrice, newQuantity);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(bookRepository, times(1)).save(existingBookEntity);
+        assertEquals(newTitle, existingBookEntity.getTitle());
+        assertEquals(newPrice, existingBookEntity.getPrice());
+        assertEquals(newQuantity, existingBookEntity.getQuantity());
+    }
+
+    @Test
+    void updateBookNotFound() {
+        // Arrange
+        Long bookId = 1L;
+        when(bookRepository.findById(bookId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<BookEntity> response = bookController.updateBook(bookId, "Updated Title", BigDecimal.valueOf(25.99), 50);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(bookRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteBookById() {
+        // Arrange
+        Long bookId = 1L;
+        when(bookRepository.findById(bookId)).thenReturn(Optional.of(new BookEntity()));
+
+        // Act
+        ResponseEntity<Void> response = bookController.deleteBookById(bookId);
+
+        // Assert
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        verify(bookRepository, times(1)).deleteById(bookId);
+    }
+
+    @Test
+    void deleteBookByIdNotFound() {
+        // Arrange
+        Long bookId = 1L;
+        when(bookRepository.findById(bookId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Void> response = bookController.deleteBookById(bookId);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(bookRepository, never()).deleteById(any());
+    }
+}
+These tests cover scenarios where the book exists, doesn't exist (for update), and the book is found or not found (for delete). Adapt them based on your specific requirements and edge cases.
+
+User
+Create unit tests to my Java class """package com.inodinln.generativeAiTask2.controllers;
+
+import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/v1/authors/")
+@Transactional(readOnly = true)
+public class AuthorController {
+
+    private final AuthorRepository authorRepository;
+
+    @GetMapping
+    public ResponseEntity<List<AuthorEntity>> getAllAuthors() {
+        return new ResponseEntity<>(authorRepository.findAll(), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<AuthorEntity> getAuthorById(@PathVariable(name = "id") Long id) {
+        return authorRepository.findById(id).map(authorEntity -> new ResponseEntity<>(authorEntity, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @Transactional
+    @PostMapping
+    public ResponseEntity<AuthorEntity> createNewAuthor(@RequestParam(name = "name") String name) {
+        return new ResponseEntity<>(authorRepository.save(new AuthorEntity(name)), HttpStatus.CREATED);
+    }
+
+    @Transactional
+    @PutMapping
+    public ResponseEntity<BookEntity> updateAuthor(
+            @RequestParam(name = "id") Long id,
+            @RequestParam(name = "newName", required = false) String newName) {
+        Optional<AuthorEntity> result = authorRepository.findById(id);
+        if (result.isEmpty()) return new ResponseEntity<>( HttpStatus.NOT_FOUND);
+        AuthorEntity entityToBeUpdated = result.get();
+        Optional.ofNullable(newName).ifPresent(entityToBeUpdated::setName);
+        authorRepository.save(entityToBeUpdated);
+        return new ResponseEntity<>( HttpStatus.OK);
+    }
+
+    @Transactional
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAuthorById(@PathVariable(name = "id") Long id) {
+        Optional<AuthorEntity> result = authorRepository.findById(id);
+        if (result.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        authorRepository.deleteById(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+}"""
+ChatGPT
+Certainly! Below are JUnit tests for the AuthorController class. These tests cover the getAllAuthors, getAuthorById, createNewAuthor, updateAuthor, and deleteAuthorById methods:
+
+java
+Copy code
+import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
+
+class AuthorControllerTest {
+
+    @InjectMocks
+    private AuthorController authorController;
+
+    @Mock
+    private AuthorRepository authorRepository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void getAllAuthors() {
+        // Arrange
+        List<AuthorEntity> authors = Arrays.asList(new AuthorEntity(), new AuthorEntity());
+        when(authorRepository.findAll()).thenReturn(authors);
+
+        // Act
+        ResponseEntity<List<AuthorEntity>> response = authorController.getAllAuthors();
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(authors, response.getBody());
+    }
+
+    @Test
+    void getAllAuthorsEmptyList() {
+        // Arrange
+        when(authorRepository.findAll()).thenReturn(Arrays.asList());
+
+        // Act
+        ResponseEntity<List<AuthorEntity>> response = authorController.getAllAuthors();
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().isEmpty());
+    }
+
+    @Test
+    void getAuthorById() {
+        // Arrange
+        Long authorId = 1L;
+        AuthorEntity authorEntity = new AuthorEntity();
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(authorEntity));
+
+        // Act
+        ResponseEntity<AuthorEntity> response = authorController.getAuthorById(authorId);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(authorEntity, response.getBody());
+    }
+
+    @Test
+    void getAuthorByIdNotFound() {
+        // Arrange
+        Long authorId = 1L;
+        when(authorRepository.findById(authorId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<AuthorEntity> response = authorController.getAuthorById(authorId);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void createNewAuthor() {
+        // Arrange
+        String authorName = "New Author";
+        when(authorRepository.save(any())).thenReturn(new AuthorEntity(authorName));
+
+        // Act
+        ResponseEntity<AuthorEntity> response = authorController.createNewAuthor(authorName);
+
+        // Assert
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        verify(authorRepository, times(1)).save(any());
+    }
+
+    @Test
+    void updateAuthor() {
+        // Arrange
+        Long authorId = 1L;
+        String newName = "Updated Author";
+
+        AuthorEntity existingAuthorEntity = new AuthorEntity();
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(existingAuthorEntity));
+
+        // Act
+        ResponseEntity<BookEntity> response = authorController.updateAuthor(authorId, newName);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(authorRepository, times(1)).save(existingAuthorEntity);
+        assertEquals(newName, existingAuthorEntity.getName());
+    }
+
+    @Test
+    void updateAuthorNotFound() {
+        // Arrange
+        Long authorId = 1L;
+        when(authorRepository.findById(authorId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<BookEntity> response = authorController.updateAuthor(authorId, "Updated Author");
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(authorRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteAuthorById() {
+        // Arrange
+        Long authorId = 1L;
+        when(authorRepository.findById(authorId)).thenReturn(Optional.of(new AuthorEntity()));
+
+        // Act
+        ResponseEntity<Void> response = authorController.deleteAuthorById(authorId);
+
+        // Assert
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        verify(authorRepository, times(1)).deleteById(authorId);
+    }
+
+    @Test
+    void deleteAuthorByIdNotFound() {
+        // Arrange
+        Long authorId = 1L;
+        when(authorRepository.findById(authorId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Void> response = authorController.deleteAuthorById(authorId);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(authorRepository, never()).deleteById(any());
+    }
+}
+These tests cover various scenarios, such as getting authors, creating a new author, updating an existing author, and deleting an author. Adjust them based on your specific requirements and edge cases.
+
+User
+Create unit tests to my Java class """package com.inodinln.generativeAiTask2.controllers;
+
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/v1/genres/")
+@Transactional(readOnly = true)
+public class GenreController {
+
+    private final GenreRepository genreRepository;
+
+    @GetMapping
+    public ResponseEntity<List<GenreEntity>> getAllGenres() {
+        return new ResponseEntity<>(genreRepository.findAll(), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<GenreEntity> getGenreById(@PathVariable(name = "id") Long id) {
+        return genreRepository.findById(id).map(genreEntity -> new ResponseEntity<>(genreEntity, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @Transactional
+    @PostMapping
+    public ResponseEntity<GenreEntity> createNewGenre(@RequestParam(name = "title") String title) {
+        return new ResponseEntity<>(genreRepository.save(new GenreEntity(title)), HttpStatus.CREATED);
+    }
+
+    @Transactional
+    @PutMapping
+    public ResponseEntity<BookEntity> updateGenre(
+            @RequestParam(name = "id") Long id,
+            @RequestParam(name = "newTitle", required = false) String newTitle) {
+        Optional<GenreEntity> result = genreRepository.findById(id);
+        if (result.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        GenreEntity entityToBeUpdated = result.get();
+        Optional.ofNullable(newTitle).ifPresent(entityToBeUpdated::setTitle);
+        genreRepository.save(entityToBeUpdated);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @Transactional
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteGenreById(@PathVariable(name = "id") Long id) {
+        Optional<GenreEntity> result = genreRepository.findById(id);
+        if (result.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        genreRepository.deleteById(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+}"""
+ChatGPT
+Certainly! Below are JUnit tests for the GenreController class. These tests cover the getAllGenres, getGenreById, createNewGenre, updateGenre, and deleteGenreById methods:
+
+java
+Copy code
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
+
+class GenreControllerTest {
+
+    @InjectMocks
+    private GenreController genreController;
+
+    @Mock
+    private GenreRepository genreRepository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void getAllGenres() {
+        // Arrange
+        List<GenreEntity> genres = Arrays.asList(new GenreEntity(), new GenreEntity());
+        when(genreRepository.findAll()).thenReturn(genres);
+
+        // Act
+        ResponseEntity<List<GenreEntity>> response = genreController.getAllGenres();
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(genres, response.getBody());
+    }
+
+    @Test
+    void getAllGenresEmptyList() {
+        // Arrange
+        when(genreRepository.findAll()).thenReturn(Arrays.asList());
+
+        // Act
+        ResponseEntity<List<GenreEntity>> response = genreController.getAllGenres();
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().isEmpty());
+    }
+
+    @Test
+    void getGenreById() {
+        // Arrange
+        Long genreId = 1L;
+        GenreEntity genreEntity = new GenreEntity();
+        when(genreRepository.findById(genreId)).thenReturn(Optional.of(genreEntity));
+
+        // Act
+        ResponseEntity<GenreEntity> response = genreController.getGenreById(genreId);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(genreEntity, response.getBody());
+    }
+
+    @Test
+    void getGenreByIdNotFound() {
+        // Arrange
+        Long genreId = 1L;
+        when(genreRepository.findById(genreId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<GenreEntity> response = genreController.getGenreById(genreId);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void createNewGenre() {
+        // Arrange
+        String genreTitle = "New Genre";
+        when(genreRepository.save(any())).thenReturn(new GenreEntity(genreTitle));
+
+        // Act
+        ResponseEntity<GenreEntity> response = genreController.createNewGenre(genreTitle);
+
+        // Assert
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        verify(genreRepository, times(1)).save(any());
+    }
+
+    @Test
+    void updateGenre() {
+        // Arrange
+        Long genreId = 1L;
+        String newTitle = "Updated Genre";
+
+        GenreEntity existingGenreEntity = new GenreEntity();
+        when(genreRepository.findById(genreId)).thenReturn(Optional.of(existingGenreEntity));
+
+        // Act
+        ResponseEntity<BookEntity> response = genreController.updateGenre(genreId, newTitle);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(genreRepository, times(1)).save(existingGenreEntity);
+        assertEquals(newTitle, existingGenreEntity.getTitle());
+    }
+
+    @Test
+    void updateGenreNotFound() {
+        // Arrange
+        Long genreId = 1L;
+        when(genreRepository.findById(genreId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<BookEntity> response = genreController.updateGenre(genreId, "Updated Genre");
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(genreRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteGenreById() {
+        // Arrange
+        Long genreId = 1L;
+        when(genreRepository.findById(genreId)).thenReturn(Optional.of(new GenreEntity()));
+
+        // Act
+        ResponseEntity<Void> response = genreController.deleteGenreById(genreId);
+
+        // Assert
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        verify(genreRepository, times(1)).deleteById(genreId);
+    }
+
+    @Test
+    void deleteGenreByIdNotFound() {
+        // Arrange
+        Long genreId = 1L;
+        when(genreRepository.findById(genreId)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Void> response = genreController.deleteGenreById(genreId);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(genreRepository, never()).deleteById(any());
+    }
+}
+These tests cover various scenarios, such as getting genres, creating a new genre, updating an existing genre, and deleting a genre. Adjust them based on your specific requirements and edge cases.
+
+User
+Create unit tests to my Java class '''package com.inodinln.generativeAiTask2.controllers;
+
+import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import com.inodinln.generativeAiTask2.repositories.BookRepository;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("/api/v1/books/")
+@Transactional(readOnly = true)
+public class BookController {
+
+    private final BookRepository bookRepository;
+
+    private final AuthorRepository authorRepository;
+
+    private final GenreRepository genreRepository;
+
+    @GetMapping("/findByAuthorId/{id}")
+    public ResponseEntity<List<BookEntity>> findBooksByAuthorId(@PathVariable(name = "id") Long id) {
+        return new ResponseEntity<>(bookRepository.findAllByAuthor_Id(id), HttpStatus.OK);
+    }
+
+    @GetMapping("/findByGenreId/{id}")
+    public ResponseEntity<List<BookEntity>> findBooksByGenreId(@PathVariable(name = "id") Long id) {
+        return new ResponseEntity<>(bookRepository.findAllByGenre_Id(id), HttpStatus.OK);
+    }
+
+    @GetMapping("/findByTitle}")
+    public ResponseEntity<List<BookEntity>> findBooksByTitle( @RequestParam(name = "title") String title) {
+        return new ResponseEntity<>(bookRepository.findAllByTitle(title), HttpStatus.OK);
+    }}'''
+ChatGPT
+Certainly! Below are JUnit tests for the new methods added to the BookController class: findBooksByAuthorId, findBooksByGenreId, and findBooksByTitle.
+
+java
+Copy code
+import com.inodinln.generativeAiTask2.entities.AuthorEntity;
+import com.inodinln.generativeAiTask2.entities.BookEntity;
+import com.inodinln.generativeAiTask2.entities.GenreEntity;
+import com.inodinln.generativeAiTask2.repositories.AuthorRepository;
+import com.inodinln.generativeAiTask2.repositories.BookRepository;
+import com.inodinln.generativeAiTask2.repositories.GenreRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
+
+class BookControllerTest {
+
+    @InjectMocks
+    private BookController bookController;
+
+    @Mock
+    private BookRepository bookRepository;
+
+    @Mock
+    private AuthorRepository authorRepository;
+
+    @Mock
+    private GenreRepository genreRepository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void findBooksByAuthorId() {
+        // Arrange
+        Long authorId = 1L;
+        List<BookEntity> books = Arrays.asList(new BookEntity(), new BookEntity());
+        when(bookRepository.findAllByAuthor_Id(authorId)).thenReturn(books);
+
+        // Act
+        ResponseEntity<List<BookEntity>> response = bookController.findBooksByAuthorId(authorId);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(books, response.getBody());
+    }
+
+    @Test
+    void findBooksByGenreId() {
+        // Arrange
+        Long genreId = 1L;
+        List<BookEntity> books = Arrays.asList(new BookEntity(), new BookEntity());
+        when(bookRepository.findAllByGenre_Id(genreId)).thenReturn(books);
+
+        // Act
+        ResponseEntity<List<BookEntity>> response = bookController.findBooksByGenreId(genreId);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(books, response.getBody());
+    }
+
+    @Test
+    void findBooksByTitle() {
+        // Arrange
+        String title = "BookTitle";
+        List<BookEntity> books = Arrays.asList(new BookEntity(), new BookEntity());
+        when(bookRepository.findAllByTitle(title)).thenReturn(books);
+
+        // Act
+        ResponseEntity<List<BookEntity>> response = bookController.findBooksByTitle(title);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(books, response.getBody());
+    }
+}
+These tests cover scenarios where books are found based on authorId, genreId, and title. Adjust them based on your specific requirements and edge cases.
+
